@@ -1,0 +1,214 @@
+cubes:
+  - name: fct_daily_company_people
+    sql_table: {{ env_var('MY_DATABASE') | safe }}.public_product_mart.fct_daily_company_people
+    data_source: default
+
+    joins:
+      - name: dim_companies
+        relationship: many_to_one
+        sql: "{fct_daily_company_people}.company_key = {dim_companies.company_key}"
+
+      - name: dim_dates
+        relationship: many_to_one
+        sql: "{fct_daily_company_people}.date_key = {dim_dates.date_key}"
+
+      - name: dim_company_people
+        relationship: many_to_one
+        sql: "{fct_daily_company_people}.company_people_key = {dim_company_people.company_people_key}"
+
+    dimensions:
+      - name: daily_company_people_key
+        sql: daily_company_people_key
+        type: string
+        primary_key: true
+
+      - name: date_key
+        sql: date_key
+        type: number
+        public: false
+
+      - name: date
+        sql: "{dim_dates.yyyy_mm_dd}"
+        type: time
+
+      - name: company_key
+        sql: company_key
+        type: number
+        public: false
+
+      - name: company_id
+        sql: "{dim_companies.company_id}"
+        type: number
+
+      - name: company_persona
+        sql: "{dim_companies.company_persona}"
+        type: string
+
+      - name: company_people_id
+        sql: "{dim_company_people.company_people_id}"
+        type: number
+
+      - name: is_messaging_access
+        sql: "{dim_company_people.is_messaging_access}"
+        type: number
+
+    measures:
+      - name: sent_message_count
+        sql: sent_message_count
+        type: sum
+
+      - name: number_of_company_people
+        type: count
+
+      - name: number_of_company_people_with_messaging_access
+        type: count
+        filters:
+          - sql: "{dim_company_people.is_messaging_access} = 1"
+
+      - name: percent_of_company_people_with_messaging_access
+        sql: "div0({number_of_company_people_with_messaging_access}, {number_of_company_people})"
+        type: number
+
+      - name: number_of_company_people_with_messaging_engagement
+        type: count
+        filters:
+          - sql: "{dim_company_people.is_messaging_access} = 1 and {fct_daily_company_people}.sent_message_count > 0"
+
+      - name: percent_of_company_people_with_messaging_engagement
+        sql: "div0({number_of_company_people_with_messaging_engagement}, {number_of_company_people_with_messaging_access})"
+        type: number
+
+
+  - name: fct_daily_company_people__date_company_grouping
+    sql: >
+      select
+        fct_daily_company_people.date_key
+        , fct_daily_company_people.company_key
+      from {{ env_var('MY_DATABASE') | safe }}.public_product_mart.fct_daily_company_people
+      where {fct_daily_company_people__date_company_grouping.is_messaging_access} = 1
+      group by 1, 2
+    data_source: default
+
+    joins:
+      - name: fct_daily_company_people
+        relationship: one_to_many
+        sql: >
+          {fct_daily_company_people.date_key} = {fct_daily_company_people__date_company_grouping.date_key}
+          and 
+          {fct_daily_company_people.company_key} = {fct_daily_company_people__date_company_grouping.company_key}
+
+    dimensions:
+      - name: date_key
+        sql: "{date_key}"
+        type: number
+        public: false
+
+      - name: date
+        sql: "{fct_daily_company_people.date}"
+        type: time
+ 
+      - name: company_key
+        sql: "{company_key}"
+        type: number
+        public: false
+
+      - name: company_id
+        sql: "{fct_daily_company_people.company_id}"
+        type: number
+
+      - name: company_people_id
+        sql: "{fct_daily_company_people.company_people_id}"
+        type: number
+
+      - name: date_company_key
+        sql: "CONCAT({date_key}, '-', {company_key})"
+        type: string
+        primary_key: true
+        public: false
+
+      - name: is_messaging_access
+        sql: "{fct_daily_company_people.is_messaging_access}"
+        type: number
+
+      - name: percent_of_company_people_with_messaging_access
+        sql: "{fct_daily_company_people.percent_of_company_people_with_messaging_access}"
+        type: number
+        sub_query: true
+        public: false
+
+      - name: company_persona
+        sql: "{fct_daily_company_people.company_persona}"
+        type: string
+
+    measures:
+      - name: avg_percent_of_company_people_with_messaging_access
+        sql: "avg({percent_of_company_people_with_messaging_access})"
+        type: number
+
+
+  - name: fct_daily_company_people__date_company_grouping__is_messaging_access_filter
+    sql: >
+      select
+        fct_daily_company_people.date_key
+        , fct_daily_company_people.company_key
+      from {{ env_var('MY_DATABASE') | safe }}.public_product_mart.fct_daily_company_people
+      inner join {{ env_var('MY_DATABASE') | safe }}.public_dimensions.dim_company_people
+        on fct_daily_company_people.company_people_key = dim_company_people.company_people_key
+        and dim_company_people.is_messaging_access = 1
+      inner join {{ env_var('MY_DATABASE') | safe }}.public_dimensions.dim_companies
+        on fct_daily_company_people.company_key = dim_companies.company_key
+        and dim_companies.is_paid = 1
+      group by 1, 2
+    data_source: default
+
+    joins:
+      - name: fct_daily_company_people
+        relationship: one_to_many
+        sql: >
+          {fct_daily_company_people.date_key} = {fct_daily_company_people__date_company_grouping__is_messaging_access_filter.date_key}
+          and 
+          {fct_daily_company_people.company_key} = {fct_daily_company_people__date_company_grouping__is_messaging_access_filter.company_key}
+
+    dimensions:
+      - name: date_key
+        sql: date_key
+        type: number
+        public: false
+
+      - name: date
+        sql: "{fct_daily_company_people.date}"
+        type: time
+ 
+      - name: company_key
+        sql: company_key
+        type: number
+        public: false
+ 
+      - name: company_id
+        sql: "{fct_daily_company_people.company_id}"
+        type: number
+
+      - name: company_people_id
+        sql: "{fct_daily_company_people.company_people_id}"
+        type: number
+
+      - name: date_company_key
+        sql: "CONCAT({date_key}, '-', {company_key})"
+        type: string
+        primary_key: true
+        public: false
+
+      - name: percent_of_company_people_with_messaging_engagement
+        sql: "{fct_daily_company_people.percent_of_company_people_with_messaging_engagement}"
+        type: number
+        sub_query: true
+        public: false
+
+      - name: company_persona
+        sql: "{fct_daily_company_people.company_persona}"
+        type: string
+
+    measures:
+      - name: avg_percent_of_company_people_with_messaging_engagement
+        sql: "avg({percent_of_company_people_with_messaging_engagement})"
+        type: number

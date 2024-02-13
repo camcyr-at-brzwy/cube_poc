@@ -1,0 +1,26 @@
+cubes:
+  - name: dim_companies
+    sql_table: public_dimensions.dim_companies
+    data_source: default
+
+    dimensions:
+      - name: company_key
+        sql: company_key
+        type: string
+        primary_key: true
+
+      - name: company_id
+        sql: company_id
+        type: number
+
+      - name: company_name
+        sql: name
+        type: string
+
+      - name: company_persona
+        sql: company_persona
+        type: string
+
+      - name: is_paid
+        sql: is_paid
+        type: number

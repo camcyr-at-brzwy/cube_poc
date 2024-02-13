@@ -1,0 +1,14 @@
+cubes:
+  - name: dim_dates
+    sql_table: public_dimensions.dim_dates
+    data_source: default
+
+    dimensions:
+      - name: date_key
+        sql: date_key
+        type: number
+        primary_key: true
+
+      - name: yyyy_mm_dd
+        sql: yyyy_mm_dd
+        type: time

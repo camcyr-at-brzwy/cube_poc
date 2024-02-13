@@ -1,0 +1,18 @@
+cubes:
+  - name: dim_company_people
+    sql_table: public_dimensions.dim_company_people
+    data_source: default
+
+    dimensions:
+      - name: company_people_key
+        sql: company_people_key
+        type: string
+        primary_key: true
+
+      - name: company_people_id
+        sql: company_people_id
+        type: number
+
+      - name: is_messaging_access
+        sql: is_messaging_access
+        type: number
